@@ -42,7 +42,25 @@ const signer = createClientHederaSigner(buyerId, PrivateKey.fromStringECDSA(buye
   network: NETWORK,
 })
 
-const client = new x402Client().register(NETWORK, new ExactHederaScheme(signer))
+// SPEND CONTROLS — enforced client-side, BEFORE any payment payload is built.
+//
+// This is not our code: @x402/core ships a budget guardrail. By default it allows
+// only assets the scheme recognises (USDC on Hedera) and caps each payment at $1.
+// HBAR (0.0.0) is NOT a default asset, so paying in HBAR must be opted into
+// explicitly — which is why the first run of this script failed closed.
+//
+// This matters for Vouch: it is the buyer agent's mandate, expressed in code. A
+// rogue or hijacked agent cannot pay an unexpected asset or exceed its per-call cap.
+const client = new x402Client()
+  .register(NETWORK, new ExactHederaScheme(signer))
+  .setSpendControls({
+    maxAmountPerPayment: '$0.50',
+    allowedAssets: [
+      { network: NETWORK, asset: '0.0.429274', maxAmountPerPayment: '50000' },   // USDC: max $0.05/call
+      { network: NETWORK, asset: '0.0.0', maxAmountPerPayment: '5000000' },      // HBAR: max 0.05 HBAR/call
+    ],
+  })
+
 const fetchWithPay = wrapFetchWithPayment(fetch, client)
 
 // --- 1. the free endpoint: what the agent claims ---
@@ -76,9 +94,19 @@ console.log(`  ok     HTTP ${paid.status} in ${ms}ms`)
 console.log('        ', JSON.stringify(body, null, 2).split('\n').join('\n         '))
 
 // --- 4. the settlement receipt ---
-const header = paid.headers.get('x-payment-response')
+// x402 v2 uses bare header names (PAYMENT-RESPONSE), not the X- prefixed v1 ones.
+// Look them all up rather than guessing.
+const paymentHeaders = [...paid.headers.keys()].filter((h) => h.toLowerCase().includes('payment'))
+console.log('\n  payment headers:', paymentHeaders.length ? paymentHeaders.join(', ') : '(none)')
+
+const header =
+  paid.headers.get('payment-response') ??
+  paid.headers.get('x-payment-response') ??
+  (paymentHeaders.length ? paid.headers.get(paymentHeaders[0]!) : null)
+
 if (!header) {
-  console.log('\n  WARN  no X-PAYMENT-RESPONSE header — settlement receipt missing.\n')
+  console.log('\n  WARN  no settlement receipt header found.')
+  console.log('        all headers:', [...paid.headers.keys()].join(', '), '\n')
   process.exit(1)
 }
 
