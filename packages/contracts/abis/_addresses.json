@@ -1,0 +1,20 @@
+{
+  "chainId": 11155111,
+  "ensv2": {
+    "RootRegistry": "0x8115186e8f2e0b0281e86ab91f0f48ba90364354",
+    "ETHRegistry": "0xbdc85dd5b15d7ecb354cd7cb6f2c50b4f2c4f0e2",
+    "UserRegistryImpl": "0x624a25d67b59d587752ebec8dded8827dae52050",
+    "ETHRegistrar": "0xa88553f454b77203b0d036a05c894d555eaaa2cc",
+    "BatchRegistrar": "0x8b16d15f3e51074d0e06f3cf4a0053f7cb92a7fb",
+    "PermissionedResolverImpl": "0x9eae5c2730a7dd16bdd1dee6421a1b91e3b0365e",
+    "PublicResolverV2": "0xe7b9a25607e02da8145e4eb1836ca539e53f11f7",
+    "UniversalResolverV2": "0x4a1817d13e9cf196f471725176355c1234b63c70",
+    "VerifiableFactory": "0x10dc6333cdfe1fcef624c6e0a8221b91804cd7ef",
+    "StandardRentPriceOracle": "0x8914b66260eb8c4fff795650c3ae8cd335958987"
+  },
+  "erc8004": {
+    "IdentityRegistry": "0x7177a6867296406881E20d6647232314736Dd09A",
+    "ReputationRegistry": "0xB5048e3ef1DA4E04deB6f7d0423D06F63869e322",
+    "ValidationRegistry": "0x662b40A526cb4017d947e71eAF6753BF3eeE66d8"
+  }
+}
