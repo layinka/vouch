@@ -13,7 +13,9 @@
     "spike:client": "node --env-file-if-exists=.env spike/03-client.ts",
     "typecheck": "tsc --noEmit",
     "spike:buyer": "node --env-file-if-exists=.env spike/01b-create-buyer.ts",
-    "spike:graph": "node --env-file-if-exists=.env spike/05-check-graph.ts"
+    "spike:graph": "node --env-file-if-exists=.env spike/05-check-graph.ts",
+    "keys:gen": "node --env-file-if-exists=.env spike/06-gen-sepolia-keys.ts",
+    "keys:fund": "node --env-file-if-exists=.env spike/06b-fund-roles.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",
@@ -21,7 +23,8 @@
     "@x402/express": "2.25.0",
     "@x402/fetch": "2.25.0",
     "@x402/hedera": "^2.25.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "viem": "^2.56.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
