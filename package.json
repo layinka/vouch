@@ -11,7 +11,9 @@
     "spike:assoc": "node --env-file-if-exists=.env spike/01-associate-usdc.ts",
     "spike:server": "node --env-file-if-exists=.env --watch spike/02-server.ts",
     "spike:client": "node --env-file-if-exists=.env spike/03-client.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "spike:buyer": "node --env-file-if-exists=.env spike/01b-create-buyer.ts",
+    "spike:graph": "node --env-file-if-exists=.env spike/05-check-graph.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",
