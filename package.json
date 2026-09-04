@@ -1,0 +1,29 @@
+{
+  "name": "vouch",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "spike:env": "node --env-file-if-exists=.env spike/00-check-env.ts",
+    "spike:assoc": "node --env-file-if-exists=.env spike/01-associate-usdc.ts",
+    "spike:server": "node --env-file-if-exists=.env --watch spike/02-server.ts",
+    "spike:client": "node --env-file-if-exists=.env spike/03-client.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hiero-ledger/sdk": "^2.85.0",
+    "@x402/core": "2.25.0",
+    "@x402/express": "2.25.0",
+    "@x402/fetch": "2.25.0",
+    "@x402/hedera": "^2.25.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  }
+}
