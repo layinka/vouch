@@ -73,5 +73,13 @@
     "0xdd2c39a14292d1A46d1e29Ee1A0B2ae5dC0cd55D",
     "0x247A8D6077FF0a95c6cf68dA2292f10be96D5035"
   ],
-  "seeded": true
+  "seeded": true,
+  "subgraph": {
+    "slug": "vouch",
+    "version": "v0.0.1",
+    "studio": "https://thegraph.com/studio/subgraph/vouch",
+    "queryUrl": "https://api.studio.thegraph.com/query/1758675/vouch/v0.0.1",
+    "ipfsHash": "QmXqnY3HmSSuAbrVTnVi9B2ptBp1qMxxhHTKiB1rsT6HHh",
+    "network": "sepolia"
+  }
 }

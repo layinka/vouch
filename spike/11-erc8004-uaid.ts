@@ -156,6 +156,26 @@ for (const [label, agent] of Object.entries(state.agents)) {
   // DEPLOYER holds root ROLE_SET_TEXT on this resolver, so it may write any key.
   // That is correct and is not a hole in the model: the registrar is root, the
   // AGENT is not — which is exactly what demo moment A demonstrates.
+  // Also mirror the UAID into ERC-8004 metadata so the SUBGRAPH indexes it.
+  // The ENS text record is the canonical home, but the subgraph reads ERC-8004
+  // events, so without this the uaid field comes back null in queries.
+  const existingUaid = (await pub.readContract({
+    address: A.erc8004.IdentityRegistry, abi: identityAbi,
+    functionName: 'getMetadata', args: [BigInt(agent.erc8004Id!), 'uaid'],
+  })) as Hex
+  if (existingUaid !== toHex(uaid)) {
+    const { request } = await pub.simulateContract({
+      account: deployer, address: A.erc8004.IdentityRegistry, abi: identityAbi,
+      functionName: 'setMetadata', args: [BigInt(agent.erc8004Id!), 'uaid', toHex(uaid)],
+    })
+    const h = await wallet.writeContract(request)
+    link(h)
+    await pub.waitForTransactionReceipt({ hash: h })
+    ok('uaid mirrored into ERC-8004 metadata (indexable)')
+  } else {
+    ok('uaid already in ERC-8004 metadata')
+  }
+
   const records: [string, string][] = [
     ['agent:uaid', uaid],
     ['agent:erc8004', agent.erc8004Id!],
