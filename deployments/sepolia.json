@@ -65,5 +65,13 @@
   "vouchAttestations": "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5",
   "vouchAttestationsBlock": "11653066",
   "vouchScoreAnchor": "0x742744678e8aa910b926d239c221d6d44a31d050",
-  "vouchScoreAnchorBlock": "11653067"
+  "vouchScoreAnchorBlock": "11653067",
+  "counterparties": [
+    "0x379EcE55657241ecECfB2352d8D3c08B5e54FfBa",
+    "0xd7d5b81c1E2BfF9DCCB901809c2D813C776b1E44",
+    "0x8e9240eE01A199aE4966E19a51bdFf4794c29486",
+    "0xdd2c39a14292d1A46d1e29Ee1A0B2ae5dC0cd55D",
+    "0x247A8D6077FF0a95c6cf68dA2292f10be96D5035"
+  ],
+  "seeded": true
 }

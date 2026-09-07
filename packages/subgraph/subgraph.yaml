@@ -1,0 +1,101 @@
+specVersion: 1.3.0
+description: >
+  Vouch — reputation for AI agents. Indexes ERC-8004 identity, job outcomes and
+  published trust scores on Ethereum Sepolia. Entity shapes follow ERC-8004's
+  registry semantics (Agent / Feedback / Validation) so a query written against
+  one ERC-8004 deployment works against any other.
+repository: https://github.com/vouch/vouch
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: IdentityRegistry
+    network: sepolia
+    source:
+      address: "0x7177a6867296406881E20d6647232314736Dd09A"
+      abi: IdentityRegistry
+      startBlock: 11635570
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/identity.ts
+      entities: [Agent]
+      abis:
+        - name: IdentityRegistry
+          file: ./abis/IdentityRegistry.json
+      eventHandlers:
+        - event: "Registered(indexed uint256,string,indexed address)"
+          handler: handleRegistered
+        - event: "MetadataSet(indexed uint256,indexed string,string,bytes)"
+          handler: handleMetadataSet
+        - event: "Transfer(indexed address,indexed address,indexed uint256)"
+          handler: handleTransfer
+
+  - kind: ethereum
+    name: VouchAttestations
+    network: sepolia
+    source:
+      address: "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5"
+      abi: VouchAttestations
+      startBlock: 11653066
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/attestations.ts
+      entities: [Agent, Attestation, Counterparty, GlobalStats]
+      abis:
+        - name: VouchAttestations
+          file: ./abis/VouchAttestations.json
+      eventHandlers:
+        - event: "Attested(indexed uint256,indexed address,indexed bytes32,uint8,uint128,uint64)"
+          handler: handleAttested
+        - event: "Disputed(indexed uint256,indexed address,indexed bytes32,string,uint64)"
+          handler: handleDisputed
+
+  - kind: ethereum
+    name: VouchScoreAnchor
+    network: sepolia
+    source:
+      address: "0x742744678e8aa910b926d239c221d6d44a31d050"
+      abi: VouchScoreAnchor
+      startBlock: 11653067
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/scores.ts
+      entities: [Agent, ScoreSnapshot]
+      abis:
+        - name: VouchScoreAnchor
+          file: ./abis/VouchScoreAnchor.json
+      eventHandlers:
+        - event: "ScoreAnchored(indexed uint256,uint16,bytes32,bytes,uint64)"
+          handler: handleScoreAnchored
+
+  - kind: ethereum
+    name: VouchRegistry
+    network: sepolia
+    source:
+      address: "0x72C8b9f1a462b199d3e73D7Ea74174405Cb112c5"
+      abi: UserRegistryImpl
+      startBlock: 11635570
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/registry.ts
+      entities: [NameRegistration]
+      abis:
+        - name: UserRegistryImpl
+          file: ./abis/UserRegistryImpl.json
+      eventHandlers:
+        - event: "LabelRegistered(indexed uint256,indexed bytes32,string,address,uint64,indexed address)"
+          handler: handleLabelRegistered
+        - event: "LabelUnregistered(indexed uint256,indexed address)"
+          handler: handleLabelUnregistered
+        - event: "ExpiryUpdated(indexed uint256,indexed uint64,indexed address)"
+          handler: handleExpiryUpdated
+        - event: "ResolverUpdated(indexed uint256,indexed address,indexed address)"
+          handler: handleResolverUpdated

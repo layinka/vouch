@@ -1,0 +1,132 @@
+# Vouch subgraph schema.
+#
+# Entity shapes deliberately follow ERC-8004's registry semantics — an Agent is
+# the ERC-721 identity, Attestation is a feedback signal about a job, Validation
+# is a third-party check. That is the standards leverage: a query written against
+# this schema reads any ERC-8004 deployment on any chain, because the events it
+# indexes are the standard's, not ours.
+#
+# Vouch adds exactly one thing on top: ScoreSnapshot, the published derivation.
+
+type Agent @entity(immutable: false) {
+  "ERC-8004 agent id (the ERC-721 token id), as a decimal string"
+  id: ID!
+  owner: Bytes!
+  tokenURI: String!
+
+  "ENS name, from the `ens` metadata key written at registration"
+  ensName: String
+  "HCS-14 Universal Agent ID"
+  uaid: String
+  "ENS namehash — links this agent to its PermissionedResolver"
+  node: Bytes
+
+  registeredAt: BigInt!
+  registeredBlock: BigInt!
+
+  # ---- evidence, maintained incrementally by the mappings ----
+  totalJobs: Int!
+  okJobs: Int!
+  disputedJobs: Int!
+  failedJobs: Int!
+  "Sum of attested job value, in wei"
+  settledValue: BigInt!
+  "Distinct counterparties who have rated this agent — the anti-Sybil signal"
+  uniqueCounterparties: Int!
+  "Dispute rate in basis points, recomputed on every attestation"
+  disputeRateBps: Int!
+
+  "Latest score published by the scorer, 0..1000"
+  latestScore: Int
+  latestScoreAt: BigInt
+
+  attestations: [Attestation!]! @derivedFrom(field: "agent")
+  scores: [ScoreSnapshot!]! @derivedFrom(field: "agent")
+  names: [NameRegistration!]! @derivedFrom(field: "agent")
+}
+
+enum Outcome {
+  Ok
+  Disputed
+  Failed
+}
+
+type Attestation @entity(immutable: false) {
+  "agentId-attestor-jobRef"
+  id: ID!
+  agent: Agent!
+  attestor: Counterparty!
+  jobRef: Bytes!
+  outcome: Outcome!
+  value: BigInt!
+
+  "Set when an Ok attestation was later escalated — this transition is what makes a score move"
+  disputeReason: String
+  disputedAt: BigInt
+
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+"An address that has rated at least one agent. Their own reliability weights the score."
+type Counterparty @entity(immutable: false) {
+  id: ID!
+  attestationsGiven: Int!
+  disputesRaised: Int!
+  firstSeen: BigInt!
+  attestations: [Attestation!]! @derivedFrom(field: "attestor")
+}
+
+"""
+One (agent, rater) pair. Exists so uniqueCounterparties counts DISTINCT raters
+rather than total attestations — the difference is the whole anti-Sybil story.
+Two colluding agents rating each other a hundred times still register as one
+counterparty each, so volume alone cannot buy a score.
+"""
+type AgentCounterparty @entity(immutable: false) {
+  "agentId-attestor"
+  id: ID!
+  agent: Agent!
+  counterparty: Counterparty!
+  jobs: Int!
+  firstSeen: BigInt!
+}
+
+"A score the scorer published on-chain, with the components that produced it."
+type ScoreSnapshot @entity(immutable: true) {
+  id: ID!
+  agent: Agent!
+  score: Int!
+  evidenceRoot: Bytes!
+  "ABI-encoded component breakdown, so the score is auditable rather than a black box"
+  components: Bytes!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+"A name minted under vouch.eth in our own ENSv2 subname registry."
+type NameRegistration @entity(immutable: false) {
+  "registry token id"
+  id: ID!
+  label: String!
+  labelHash: Bytes!
+  owner: Bytes!
+  resolver: Bytes
+  expiry: BigInt!
+  registeredAt: BigInt!
+  revokedAt: BigInt
+  active: Boolean!
+  "Linked once the agent's ERC-8004 metadata names this node"
+  agent: Agent
+}
+
+type GlobalStats @entity(immutable: false) {
+  id: ID!
+  totalAgents: Int!
+  totalAttestations: Int!
+  totalDisputes: Int!
+  totalCounterparties: Int!
+  totalSettledValue: BigInt!
+}
