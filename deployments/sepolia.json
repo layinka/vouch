@@ -12,7 +12,54 @@
       "name": "researcher.vouch.eth",
       "resolver": "0x3D1aFd78e75e5007267EddAb2680328dADa6c4F6",
       "tokenId": "101260072466379151654606664415951363605492591189503580348039290932357295505408",
-      "node": "0x0ba8768bd0b0fa12450259c67628abfcf80eee8897642cf5374c76aec08f380e"
+      "node": "0x0ba8768bd0b0fa12450259c67628abfcf80eee8897642cf5374c76aec08f380e",
+      "skills": [
+        1,
+        4,
+        7
+      ],
+      "erc8004Id": "202",
+      "uaid": "uaid:aid:8Jpjd6FvxtEByfC2T655mAcCMeTZD2wu4VYXpoQNJGgD7cECrccu7Pt3gJSAr3bvDq;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0x0ba8768bd0b0fa12450259c67628abfcf80eee8897642cf5374c76aec08f380e"
+    },
+    "pricefeed": {
+      "label": "pricefeed",
+      "name": "pricefeed.vouch.eth",
+      "resolver": "0xF64391A362Fa81cfC518E55Fb3FA53338081d6eb",
+      "tokenId": "99977595190769773505903414984649488834016436230891647985081431904134279200768",
+      "node": "0xbb2bb128baa57f27814a5cebc82dd653120fa5d5fc4ffc11d1641f5f46617834",
+      "skills": [
+        2,
+        5
+      ],
+      "erc8004Id": "203",
+      "uaid": "uaid:aid:A7rT5tz3gwwLFKB5Djary2i76bGAw8yE2WQhnVoX6m9hKP8SDa6GueRnuJsvzhsKrW;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0xbb2bb128baa57f27814a5cebc82dd653120fa5d5fc4ffc11d1641f5f46617834"
+    },
+    "trader": {
+      "label": "trader",
+      "name": "trader.vouch.eth",
+      "resolver": "0x4c5A0481675bd95f627eb68E33018F24c92Aa0F8",
+      "tokenId": "36203418401084780597054920138939824343939024344793103648738897866389966553088",
+      "node": "0x8a5d266fbc59741592bb6b5313f93e016e9b999e4e7d2c6bcaa8464189738646",
+      "skills": [
+        3,
+        5,
+        9
+      ],
+      "erc8004Id": "204",
+      "uaid": "uaid:aid:5EMyxNaDZCiyyxTpWMDHPDZswHjhhnPWYNH7vj7kxxoF76dRh6sQp4zQbsU8eR6ewg;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0x8a5d266fbc59741592bb6b5313f93e016e9b999e4e7d2c6bcaa8464189738646"
+    },
+    "summarizer": {
+      "label": "summarizer",
+      "name": "summarizer.vouch.eth",
+      "resolver": "0x886F25392b9d3AbFF03d1343658316Edf1821644",
+      "tokenId": "39002328526719374623166582769275901982643521312252879166043250525654296297472",
+      "node": "0xd58ca294275a7292d664b3d001dc2eaface94aa914f4840a94bed36da47fc6d0",
+      "skills": [
+        1,
+        8
+      ],
+      "erc8004Id": "205",
+      "uaid": "uaid:aid:4FnQXp7zvb947DJ69H95LBFabqMVFYyEvLv3Bnbc6fACwCUQUhDauryf8tCcN1P4kR;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0xd58ca294275a7292d664b3d001dc2eaface94aa914f4840a94bed36da47fc6d0"
     }
   }
 }
