@@ -61,5 +61,9 @@
       "erc8004Id": "205",
       "uaid": "uaid:aid:4FnQXp7zvb947DJ69H95LBFabqMVFYyEvLv3Bnbc6fACwCUQUhDauryf8tCcN1P4kR;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0xd58ca294275a7292d664b3d001dc2eaface94aa914f4840a94bed36da47fc6d0"
     }
-  }
+  },
+  "vouchAttestations": "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5",
+  "vouchAttestationsBlock": "11653066",
+  "vouchScoreAnchor": "0x742744678e8aa910b926d239c221d6d44a31d050",
+  "vouchScoreAnchorBlock": "11653067"
 }
