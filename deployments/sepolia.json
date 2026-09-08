@@ -81,5 +81,14 @@
     "queryUrl": "https://api.studio.thegraph.com/query/1758675/vouch/v0.0.1",
     "ipfsHash": "QmXqnY3HmSSuAbrVTnVi9B2ptBp1qMxxhHTKiB1rsT6HHh",
     "network": "sepolia"
+  },
+  "hedera": {
+    "network": "testnet",
+    "service": "0.0.10364717",
+    "buyer": "0.0.10366467",
+    "auditTopic": "0.0.10419860",
+    "usdc": "0.0.429274",
+    "facilitator": "https://api.testnet.blocky402.com",
+    "facilitatorFeePayer": "0.0.7162784"
   }
 }
