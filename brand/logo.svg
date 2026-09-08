@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="proven" x1="0.1" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#5CEBA6"/>
+      <stop offset="100%" stop-color="#1FA871"/>
+    </linearGradient>
+    <clipPath id="leftHalf"><rect x="0" y="0" width="256" height="512"/></clipPath>
+    <clipPath id="rightHalf"><rect x="256" y="0" width="256" height="512"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="#0B1524"/>
+  <rect x="5" y="5" width="502" height="502" rx="111" fill="none" stroke="#243350" stroke-width="10"/>
+
+  <!--
+    One V, two provenances. Both arms are the SAME polyline clipped either side
+    of the vertex, so they meet exactly and share the miter.
+      left  (green) = what the agent has DONE. Derived; it cannot write these.
+      right (grey)  = what the agent CLAIMS. It writes these itself.
+  -->
+  <g stroke-linejoin="miter" stroke-linecap="butt" fill="none" stroke-width="64">
+    <g clip-path="url(#leftHalf)">
+      <polyline points="128,146 256,376 384,146" stroke="url(#proven)"/>
+    </g>
+    <g clip-path="url(#rightHalf)">
+      <polyline points="128,146 256,376 384,146" stroke="#5A6E8C"/>
+    </g>
+  </g>
+</svg>

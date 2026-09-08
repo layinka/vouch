@@ -15,7 +15,13 @@
     "spike:buyer": "node --env-file-if-exists=.env spike/01b-create-buyer.ts",
     "spike:graph": "node --env-file-if-exists=.env spike/05-check-graph.ts",
     "keys:gen": "node --env-file-if-exists=.env spike/06-gen-sepolia-keys.ts",
-    "keys:fund": "node --env-file-if-exists=.env spike/06b-fund-roles.ts"
+    "keys:fund": "node --env-file-if-exists=.env spike/06b-fund-roles.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:check": "node --env-file-if-exists=.env spike/14-check-db.ts",
+    "indexer": "node --env-file=.env apps/api/src/worker/indexer.ts",
+    "indexer:once": "node --env-file=.env apps/api/src/worker/indexer.ts --once",
+    "indexer:dry": "node --env-file=.env apps/api/src/worker/indexer.ts --once --no-publish"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",
@@ -33,6 +39,7 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.10",
+    "sharp": "^0.35.4",
     "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="proven" x1="0.1" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#5CEBA6"/>
+      <stop offset="100%" stop-color="#1FA871"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0C1728"/>
+      <stop offset="100%" stop-color="#08101C"/>
+    </linearGradient>
+    <clipPath id="lh"><rect x="0" y="0" width="82" height="360"/></clipPath>
+    <clipPath id="rh"><rect x="82" y="0" width="120" height="360"/></clipPath>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <rect x="0" y="0" width="640" height="4" fill="url(#proven)"/>
+
+  <!-- ===== mark: the same two-tone V ===== -->
+  <g stroke-linejoin="miter" stroke-linecap="butt" fill="none" stroke-width="17">
+    <g clip-path="url(#lh)"><polyline points="48,44 82,105 116,44" stroke="url(#proven)"/></g>
+    <g clip-path="url(#rh)"><polyline points="48,44 82,105 116,44" stroke="#5A6E8C"/></g>
+  </g>
+
+  <!-- ===== wordmark ===== -->
+  <text x="136" y="92" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="50" font-weight="700" fill="#EAF1FA" letter-spacing="-1">Vouch</text>
+  <text x="140" y="116" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="12.5" font-weight="600" fill="#7E93AF" letter-spacing="1.35">REPUTATION FOR AI AGENTS</text>
+
+  <!-- ===== the permission card: the whole product in one glance ===== -->
+  <rect x="360" y="40" width="240" height="196" rx="14" fill="#101D31" stroke="#25344F" stroke-width="2"/>
+  <text x="380" y="70" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="13" font-weight="600" fill="#7E93AF" letter-spacing="1.4">WHO CAN WRITE WHAT</text>
+  <line x1="360" y1="84" x2="600" y2="84" stroke="#25344F" stroke-width="2"/>
+
+  <g font-family="Consolas, Menlo, monospace" font-size="14" fill="#C6D5E8">
+    <text x="380" y="112">agent:endpoint</text>
+    <text x="380" y="144">agent:price</text>
+    <text x="380" y="176">agent:score</text>
+    <text x="380" y="208">agent:score</text>
+  </g>
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="600">
+    <text x="504" y="112" fill="#7E93AF">agent</text>
+    <text x="504" y="144" fill="#7E93AF">agent</text>
+    <text x="504" y="176" fill="#7E93AF">agent</text>
+    <text x="504" y="208" fill="#4FE39C">scorer</text>
+  </g>
+
+  <!-- allow / deny glyphs, drawn as paths so no font is involved -->
+  <g fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M566,108 l4,4 l7,-9" stroke="#4FE39C"/>
+    <path d="M566,140 l4,4 l7,-9" stroke="#4FE39C"/>
+    <path d="M566,171 l10,10 M576,171 l-10,10" stroke="#F2607A"/>
+    <path d="M566,204 l4,4 l7,-9" stroke="#4FE39C"/>
+  </g>
+
+  <!-- ===== the line ===== -->
+  <text x="48" y="286" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="25" font-weight="600" fill="#EAF1FA">Agents can&#8217;t write their own reputation.</text>
+  <text x="48" y="314" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="17" fill="#7E93AF">ENSv2 permissions make it enforceable on-chain.</text>
+
+  <text x="48" y="344" font-family="Consolas, Menlo, monospace"
+        font-size="12.5" fill="#5A6E8C">ENSv2 · ERC-8004 · The Graph · x402 on Hedera</text>
+</svg>
