@@ -24,7 +24,10 @@
     "indexer:dry": "node --env-file=.env apps/api/src/worker/indexer.ts --once --no-publish",
     "api": "node --env-file=.env --watch apps/api/src/server.ts",
     "api:start": "node --env-file=.env apps/api/src/server.ts",
-    "demo:marketplace": "node --env-file=.env apps/agents/src/marketplace.ts"
+    "demo:marketplace": "node --env-file=.env apps/agents/src/marketplace.ts",
+    "web": "pnpm --filter web exec ng serve --port 4200",
+    "web:build": "pnpm --filter web exec ng build",
+    "demo:dispute": "node --env-file=.env apps/agents/src/dispute.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",

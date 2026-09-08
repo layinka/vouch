@@ -19,6 +19,10 @@ import { ExactHederaScheme } from '@x402/hedera/exact/server'
 import type { Network } from '@x402/core/types'
 import { db, schema } from './db/client.ts'
 import { audit, readAudit, hashscanTopic } from './hedera/hcs.ts'
+import { wrapFetchWithPayment, x402Client, decodePaymentResponseHeader } from '@x402/fetch'
+import { ExactHederaScheme as ExactHederaClientScheme } from '@x402/hedera/exact/client'
+import { createClientHederaSigner } from '@x402/hedera'
+import { PrivateKey } from '@hiero-ledger/sdk'
 
 const PORT = Number(process.env.PORT ?? 3000)
 const NETWORK = (process.env.X402_NETWORK ?? 'hedera:testnet') as Network
@@ -202,6 +206,86 @@ app.get('/v1/agents/:name/history', async (req, res) => {
       timestamp: r.timestamp, txHash: r.txHash, disputeReason: r.disputeReason,
     })),
   })
+})
+
+/**
+ * A browser has no Hedera wallet, so it cannot satisfy a 402 itself. This route
+ * has the server's own buyer agent perform a REAL paid lookup against our own
+ * x402-gated endpoint and hands back the score together with the settlement
+ * receipt — so the page can show that money actually moved, not a mock.
+ */
+const buyerId = process.env.HEDERA_BUYER_ACCOUNT_ID ?? process.env.HEDERA_ACCOUNT_ID!
+const buyerKey = process.env.HEDERA_BUYER_PRIVATE_KEY ?? process.env.HEDERA_PRIVATE_KEY!
+const buyer = new x402Client()
+  .register(NETWORK, new ExactHederaClientScheme(
+    createClientHederaSigner(buyerId, PrivateKey.fromStringECDSA(buyerKey), { network: NETWORK }),
+  ))
+  .setSpendControls({
+    maxAmountPerPayment: '$0.50',
+    allowedAssets: [
+      { network: NETWORK, asset: '0.0.429274', maxAmountPerPayment: '50000' },
+      { network: NETWORK, asset: '0.0.0', maxAmountPerPayment: '5000000' },
+    ],
+  })
+const payingFetch = wrapFetchWithPayment(fetch, buyer)
+
+app.post('/v1/demo/buy/:name', async (req, res) => {
+  const self = `http://127.0.0.1:${PORT}/v1/agents/${encodeURIComponent(req.params.name)}/score`
+  try {
+    const r = await payingFetch(self)
+    if (!r.ok) return res.status(r.status).json({ error: 'payment_failed', status: r.status })
+    const body = await r.json() as Record<string, unknown>
+    const h = r.headers.get('payment-response')
+    const st = h ? decodePaymentResponseHeader(h) : null
+    res.json({
+      ...body,
+      settlement: st?.transaction
+        ? { payer: st.payer, tx: st.transaction,
+            hashscan: `https://hashscan.io/testnet/transaction/${st.transaction.replace('@', '-').replace(/\.(\d{9})$/, '-$1')}` }
+        : null,
+    })
+  } catch (err) {
+    res.status(502).json({ error: 'payment_failed', message: (err as Error).message })
+  }
+})
+
+/**
+ * Server-sent events. The indexer runs in a separate process, so rather than
+ * wiring IPC we watch the scores table and push when one moves. That is what
+ * makes a score visibly DROP on screen after a dispute is filed.
+ */
+app.get('/v1/events', async (req, res) => {
+  res.setHeader('content-type', 'text/event-stream')
+  res.setHeader('cache-control', 'no-cache')
+  res.setHeader('connection', 'keep-alive')
+  res.flushHeaders?.()
+
+  let last = new Map<string, number>()
+  const send = (event: string, data: unknown) =>
+    res.write(`event: ${event}
+data: ${JSON.stringify(data)}
+
+`)
+
+  const poll = async () => {
+    try {
+      const rows = await db.select().from(schema.agents)
+      for (const a of rows) {
+        if (!a.ensName || a.score == null) continue
+        const prev = last.get(a.ensName)
+        if (prev !== undefined && prev !== a.score) {
+          send('score', { name: a.ensName, from: prev, to: a.score, verdict: a.verdict })
+        }
+        last.set(a.ensName, a.score)
+      }
+    } catch { /* keep the stream alive */ }
+  }
+
+  await poll()
+  send('ready', { at: Date.now() })
+  const timer = setInterval(poll, 3000)
+  const beat = setInterval(() => res.write(': keepalive\n\n'), 20_000)
+  req.on('close', () => { clearInterval(timer); clearInterval(beat) })
 })
 
 app.listen(PORT, () => {

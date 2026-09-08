@@ -13,10 +13,10 @@
     "erasableSyntaxOnly": true,
     "skipLibCheck": true
   },
-  "include": ["spike/**/*.ts", "apps/**/*.ts", "packages/shared/**/*.ts"],
+  "include": ["spike/**/*.ts", "apps/api/**/*.ts", "apps/agents/**/*.ts", "packages/shared/**/*.ts"],
   // packages/subgraph is AssemblyScript compiled by graph-cli, and
   // packages/contracts is Hardhat's own toolchain. Neither belongs in the
   // Node type-strip build; graph-ts in particular is CommonJS and trips
   // verbatimModuleSyntax + erasableSyntaxOnly.
-  "exclude": ["node_modules", "packages/subgraph", "packages/contracts"]
+  "exclude": ["node_modules", "packages/subgraph", "packages/contracts", "apps/web"]
 }
