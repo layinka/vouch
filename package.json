@@ -28,10 +28,13 @@
     "web": "pnpm --filter web exec ng serve --port 4200",
     "web:build": "pnpm --filter web exec ng build",
     "demo:dispute": "node --env-file=.env apps/agents/src/dispute.ts",
-    "demo:revoke": "node --env-file=.env apps/agents/src/revoke.ts"
+    "demo:revoke": "node --env-file=.env apps/agents/src/revoke.ts",
+    "mcp": "node --env-file=.env apps/mcp/src/server.ts",
+    "mcp:http": "node --env-file=.env apps/mcp/src/server.ts --http"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@x402/core": "2.25.0",
     "@x402/express": "2.25.0",
     "@x402/fetch": "2.25.0",
@@ -39,7 +42,8 @@
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "pg": "^8.23.0",
-    "viem": "^2.56.3"
+    "viem": "^2.56.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

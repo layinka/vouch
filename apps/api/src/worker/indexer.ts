@@ -181,9 +181,14 @@ async function tick() {
     const [existing] = await db.select().from(schema.agents).where(eq(schema.agents.erc8004Id, a.id))
     const moved = !existing?.publishedScore || Math.abs(existing.publishedScore - score) >= THRESHOLD
 
+    // The subgraph does not carry the agent's resolver on the Agent entity, but
+    // the deployment manifest does -- and the UI needs it to link to Etherscan.
+    const depEntry = Object.values(dep.agents).find((x) => x.erc8004Id === a.id)
+
     await db.insert(schema.agents).values({
       erc8004Id: a.id,
       ensName: a.ensName, uaid: a.uaid, node: a.node, owner: a.owner,
+      resolver: depEntry?.resolver ?? null,
       totalJobs: a.totalJobs, okJobs: a.okJobs,
       disputedJobs: a.disputedJobs, failedJobs: a.failedJobs,
       uniqueCounterparties: a.uniqueCounterparties,
@@ -194,6 +199,7 @@ async function tick() {
       set: {
         ensName: sql`excluded.ens_name`, uaid: sql`excluded.uaid`,
         node: sql`excluded.node`, owner: sql`excluded.owner`,
+        resolver: sql`excluded.resolver`,
         totalJobs: sql`excluded.total_jobs`, okJobs: sql`excluded.ok_jobs`,
         disputedJobs: sql`excluded.disputed_jobs`, failedJobs: sql`excluded.failed_jobs`,
         uniqueCounterparties: sql`excluded.unique_counterparties`,

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "vouch": {
+      "command": "node",
+      "args": ["--env-file=.env", "apps/mcp/src/server.ts"],
+      "cwd": "REPLACE/WITH/ABSOLUTE/PATH/TO/vouch",
+      "env": { "VOUCH_API_URL": "http://localhost:3000" }
+    }
+  }
+}

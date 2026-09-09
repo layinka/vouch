@@ -11,6 +11,9 @@ importers:
       '@hiero-ledger/sdk':
         specifier: ^2.85.0
         version: 2.85.0(bn.js@5.2.3)(react-native@0.87.1(@babel/core@8.0.1)(react@19.2.8)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.30.0
+        version: 1.30.0(supports-color@10.2.2)(zod@4.5.4)
       '@x402/core':
         specifier: 2.25.0
         version: 2.25.0
@@ -35,6 +38,9 @@ importers:
       viem:
         specifier: ^2.56.3
         version: 2.56.3(typescript@7.0.2)(zod@4.5.4)
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       '@types/express':
         specifier: ^5.0.6
@@ -117,7 +123,7 @@ importers:
     devDependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.98.1
-        version: 0.98.1(@types/node@26.4.1)(supports-color@8.1.1)(typescript@7.0.2)(zod@3.25.76)
+        version: 0.98.1(@types/node@26.4.1)(supports-color@8.1.1)(typescript@7.0.2)(zod@4.5.4)
       '@graphprotocol/graph-ts':
         specifier: ^0.38.2
         version: 0.38.2
@@ -7064,7 +7070,7 @@ snapshots:
       graphql-import-node: 0.0.5(graphql@16.11.0)
       js-yaml: 4.1.0
 
-  '@graphprotocol/graph-cli@0.98.1(@types/node@26.4.1)(supports-color@8.1.1)(typescript@7.0.2)(zod@3.25.76)':
+  '@graphprotocol/graph-cli@0.98.1(@types/node@26.4.1)(supports-color@8.1.1)(typescript@7.0.2)(zod@4.5.4)':
     dependencies:
       '@float-capital/float-subgraph-uncrashable': 0.0.0-internal-testing.5
       '@oclif/core': 4.5.5
@@ -7092,7 +7098,7 @@ snapshots:
       semver: 7.7.3
       tmp-promise: 3.0.3
       undici: 7.16.0
-      web3-eth-abi: 4.4.1(typescript@7.0.2)(zod@3.25.76)
+      web3-eth-abi: 4.4.1(typescript@7.0.2)(zod@4.5.4)
       yaml: 2.8.1
     transitivePeerDependencies:
       - '@types/node'
@@ -7721,6 +7727,28 @@ snapshots:
       raw-body: 3.0.2
       zod: 4.4.3
       zod-to-json-schema: 3.25.2(zod@4.4.3)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@modelcontextprotocol/sdk@1.30.0(supports-color@10.2.2)(zod@4.5.4)':
+    dependencies:
+      '@hono/node-server': 2.1.1(hono@4.13.7)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+      content-type: 1.0.5
+      cors: 2.8.6
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.1
+      express: 5.2.1(supports-color@10.2.2)
+      express-rate-limit: 8.7.0(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)
+      hono: 4.13.7
+      jose: 6.2.12
+      json-schema-typed: 8.0.2
+      pkce-challenge: 5.0.1
+      raw-body: 3.0.2
+      zod: 4.5.4
+      zod-to-json-schema: 3.25.2(zod@4.5.4)
     transitivePeerDependencies:
       - supports-color
 
@@ -8840,11 +8868,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  abitype@0.7.1(typescript@7.0.2)(zod@3.25.76):
+  abitype@0.7.1(typescript@7.0.2)(zod@4.5.4):
     dependencies:
       typescript: 7.0.2
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.5.4
 
   abitype@1.2.3(typescript@7.0.2)(zod@3.25.76):
     optionalDependencies:
@@ -12237,9 +12265,9 @@ snapshots:
     dependencies:
       web3-types: 1.10.0
 
-  web3-eth-abi@4.4.1(typescript@7.0.2)(zod@3.25.76):
+  web3-eth-abi@4.4.1(typescript@7.0.2)(zod@4.5.4):
     dependencies:
-      abitype: 0.7.1(typescript@7.0.2)(zod@3.25.76)
+      abitype: 0.7.1(typescript@7.0.2)(zod@4.5.4)
       web3-errors: 1.3.1
       web3-types: 1.10.0
       web3-utils: 4.3.3
@@ -12402,6 +12430,10 @@ snapshots:
   zod-to-json-schema@3.25.2(zod@4.4.3):
     dependencies:
       zod: 4.4.3
+
+  zod-to-json-schema@3.25.2(zod@4.5.4):
+    dependencies:
+      zod: 4.5.4
 
   zod@3.25.76: {}
 
