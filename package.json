@@ -27,7 +27,8 @@
     "demo:marketplace": "node --env-file=.env apps/agents/src/marketplace.ts",
     "web": "pnpm --filter web exec ng serve --port 4200",
     "web:build": "pnpm --filter web exec ng build",
-    "demo:dispute": "node --env-file=.env apps/agents/src/dispute.ts"
+    "demo:dispute": "node --env-file=.env apps/agents/src/dispute.ts",
+    "demo:revoke": "node --env-file=.env apps/agents/src/revoke.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.85.0",

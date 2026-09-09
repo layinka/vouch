@@ -60,6 +60,15 @@
       ],
       "erc8004Id": "205",
       "uaid": "uaid:aid:4FnQXp7zvb947DJ69H95LBFabqMVFYyEvLv3Bnbc6fACwCUQUhDauryf8tCcN1P4kR;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0xd58ca294275a7292d664b3d001dc2eaface94aa914f4840a94bed36da47fc6d0"
+    },
+    "rogue": {
+      "label": "rogue",
+      "name": "rogue.vouch.eth",
+      "resolver": "0xB482D19304840d6852a08D72411006da1138cEF0",
+      "tokenId": "85239317413181961196936679871391474003701183755732836294424191899307138351104",
+      "node": "0x08e88ac9135fb97142c1217b4eb9780403e9ff59ad5fdab238331b49f7cdce07",
+      "revoked": true,
+      "revokedTx": "0x695c32094f9be4fdea5ef96f05ee8f5680174482ee5b66d646337c5404e56480"
     }
   },
   "vouchAttestations": "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5",
@@ -90,5 +99,11 @@
     "usdc": "0.0.429274",
     "facilitator": "https://api.testnet.blocky402.com",
     "facilitatorFeePayer": "0.0.7162784"
+  },
+  "demoMoments": {
+    "A_permissionSplit": "agent key setText(agent:score) reverts EACUnauthorizedAccountRoles",
+    "B_buyerHires": "buyer pays $0.001/lookup on Hedera, refuses trader (60% disputes), hires on evidence",
+    "C_scoreDrops": "4 disputes -> subgraph reindex -> 760 to 524 -> buyer switches from researcher to summarizer",
+    "C_revocation": "owner unregister() -> owner and resolver both zero, name stops resolving"
   }
 }
