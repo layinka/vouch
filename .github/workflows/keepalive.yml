@@ -1,9 +1,9 @@
 name: reindex + keep-alive
 
 # Vercel Hobby caps cron at ONCE PER DAY, which is useless for an indexer, so
-# the schedule lives here instead. This also touches Postgres on every run,
-# which stops Supabase pausing the project after 7 days idle -- otherwise the
-# live demo would go down mid-judging.
+# the schedule lives here instead. The same request touches Postgres, which
+# stops Supabase pausing the project after 7 days idle -- that would otherwise
+# take the live demo down mid-judging.
 on:
   schedule:
     - cron: '*/10 * * * *'
@@ -14,10 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Reindex and keep the database warm
+        env:
+          BASE: ${{ secrets.VOUCH_API_URL }}
+          SECRET: ${{ secrets.INTERNAL_SECRET }}
         run: |
-          code=$(curl -s -o /tmp/out.json -w '%{http_code}' -m 45 \
-            -X POST "${{ secrets.VOUCH_API_URL }}/api/internal/reindex" \
-            -H "x-internal-secret: ${{ secrets.INTERNAL_SECRET }}")
+          set -u
+          # Strip any trailing slashes: "https://x.app/" + "/api/..." yields a
+          # double slash, which Vercel answers with a 308 redirect.
+          BASE="${BASE%"${BASE##*[!/]}"}"
+          # -L follows the redirect if one still happens. 308 preserves the
+          # POST method and body, unlike 301/302.
+          code=$(curl -sS -L -o /tmp/out.json -w '%{http_code}' -m 45 \
+            -X POST "$BASE/api/internal/reindex" \
+            -H "x-internal-secret: $SECRET")
           echo "HTTP $code"
-          cat /tmp/out.json
-          test "$code" = "200"
+          cat /tmp/out.json; echo
+          if [ "$code" != "200" ]; then
+            echo "::error::reindex failed with HTTP $code"
+            exit 1
+          fi
