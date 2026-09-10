@@ -1,6 +1,10 @@
 /**
  * The Vouch API.
  *
+ * Exports the Express app rather than listening, so the same code runs as a
+ * long-lived process locally (server.ts) and as a Vercel serverless function
+ * (api/index.ts). Nothing about the app changes between the two.
+ *
  * The route split is the product thesis, not a paywall:
  *
  *   FREE   what the agent CLAIMS  — self-asserted, worth exactly what you paid
@@ -288,13 +292,63 @@ data: ${JSON.stringify(data)}
   req.on('close', () => { clearInterval(timer); clearInterval(beat) })
 })
 
-app.listen(PORT, () => {
-  console.log(`\n  Vouch API on :${PORT}`)
-  console.log(`  network ${NETWORK} · asset ${ASSET} · payTo ${PAY_TO}`)
-  console.log(`  audit   ${hashscanTopic() ?? '(no HEDERA_TOPIC_ID)'}\n`)
-  console.log(`  free  GET /v1/agents`)
-  console.log(`  free  GET /v1/agents/:name`)
-  console.log(`  free  GET /v1/agents/:name/permissions`)
-  console.log(`  PAID  GET /v1/agents/:name/score`)
-  console.log(`  PAID  GET /v1/agents/:name/history\n`)
+
+/**
+ * Keep-alive + reindex, for the GitHub Actions cron.
+ *
+ * Two jobs in one request. Vercel Hobby caps cron at once per DAY, which is
+ * useless for an indexer, so the schedule lives in GitHub Actions instead and
+ * calls this. Touching Postgres on every run also stops Supabase pausing the
+ * project after 7 days idle -- which would otherwise take the live demo down
+ * mid-judging.
+ *
+ * Guarded by a shared secret because it writes.
+ */
+app.post('/api/internal/reindex', async (req, res) => {
+  const secret = process.env.INTERNAL_SECRET
+  const given = req.headers['x-internal-secret']
+  if (!secret || given !== secret) return res.status(401).json({ error: 'unauthorized' })
+
+  try {
+    // A read is enough to keep Supabase awake; the heavy indexer runs elsewhere
+    // because a serverless invocation cannot hold a poll loop open.
+    const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.agents)
+    const [cursor] = await db.select().from(schema.cursors).where(eq(schema.cursors.name, 'subgraph')).limit(1)
+    res.json({
+      ok: true,
+      agents: row?.n ?? 0,
+      lastIndexedBlock: cursor?.position ?? null,
+      lastIndexedAt: cursor?.updatedAt ?? null,
+      at: new Date().toISOString(),
+    })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: (err as Error).message })
+  }
 })
+
+export default app
+
+/**
+ * Serverless functions are frozen the moment a response is flushed, so a
+ * fire-and-forget HCS write can simply never happen. On Vercel we hand the
+ * promise to waitUntil, which keeps the invocation alive until it settles.
+ * Locally there is no such constraint and the queue drains on its own.
+ */
+export const isServerless = Boolean(process.env.VERCEL)
+
+// Only listen when this file is the entrypoint. Under Vercel it is imported.
+if (!isServerless) {
+  app.listen(PORT, () => {
+    console.log(`
+  Vouch API on :${PORT}`)
+    console.log(`  network ${NETWORK} · asset ${ASSET} · payTo ${PAY_TO}`)
+    console.log(`  audit   ${hashscanTopic() ?? '(no HEDERA_TOPIC_ID)'}
+`)
+    console.log(`  free  GET /v1/agents`)
+    console.log(`  free  GET /v1/agents/:name`)
+    console.log(`  free  GET /v1/agents/:name/permissions`)
+    console.log(`  PAID  GET /v1/agents/:name/score`)
+    console.log(`  PAID  GET /v1/agents/:name/history
+`)
+  })
+}

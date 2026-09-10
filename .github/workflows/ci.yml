@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile=false
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Build frontend
+        run: pnpm --filter web exec ng build --configuration production
+      - name: Build subgraph
+        run: pnpm --filter @vouch/subgraph exec graph codegen && pnpm --filter @vouch/subgraph exec graph build

@@ -43,8 +43,20 @@ export type ScoreDetail = {
 
 export type AuditEntry = { seq: number; at: string; rec: Record<string, unknown> }
 
-export const API_BASE =
-  (globalThis as { __VOUCH_API__?: string }).__VOUCH_API__ ?? 'http://localhost:3000'
+/**
+ * Where the API lives.
+ *
+ * In production the API is served from the same origin (Vercel rewrites /v1/*
+ * to the serverless function), so a relative base is correct and avoids CORS
+ * entirely. The window override only applies on localhost, where the API runs
+ * as a separate process on :3000.
+ */
+export const API_BASE = (() => {
+  const override = (globalThis as { __VOUCH_API__?: string }).__VOUCH_API__
+  const host = (globalThis as { location?: Location }).location?.hostname ?? ''
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === ''
+  return isLocal ? (override ?? 'http://localhost:3000') : ''
+})()
 
 @Injectable({ providedIn: 'root' })
 export class VouchApi {

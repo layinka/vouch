@@ -1,0 +1,23 @@
+name: reindex + keep-alive
+
+# Vercel Hobby caps cron at ONCE PER DAY, which is useless for an indexer, so
+# the schedule lives here instead. This also touches Postgres on every run,
+# which stops Supabase pausing the project after 7 days idle -- otherwise the
+# live demo would go down mid-judging.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reindex and keep the database warm
+        run: |
+          code=$(curl -s -o /tmp/out.json -w '%{http_code}' -m 45 \
+            -X POST "${{ secrets.VOUCH_API_URL }}/api/internal/reindex" \
+            -H "x-internal-secret: ${{ secrets.INTERNAL_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/out.json
+          test "$code" = "200"

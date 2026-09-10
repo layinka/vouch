@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm install --frozen-lockfile=false && pnpm --filter web exec ng build --configuration production",
+  "outputDirectory": "apps/web/dist/web/browser",
+  "installCommand": "pnpm install --frozen-lockfile=false",
+  "framework": null,
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": "/api/index" },
+    { "source": "/v1/:path*", "destination": "/api/index" },
+    { "source": "/api/internal/:path*", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/v1/(.*)",
+      "headers": [
+        { "key": "access-control-allow-origin", "value": "*" },
+        { "key": "access-control-allow-headers", "value": "content-type, payment, x-payment" },
+        { "key": "access-control-expose-headers", "value": "payment-response, payment-required" }
+      ]
+    }
+  ]
+}
