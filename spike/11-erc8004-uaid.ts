@@ -94,6 +94,7 @@ const SKILLS: Record<string, number[]> = {
   pricefeed: [2, 5],
   trader: [3, 5, 9],
   summarizer: [1, 8],
+  analyst: [1, 4, 6, 7],
 }
 
 const ok = (m: string) => console.log(`  ok    ${m}`)

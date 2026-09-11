@@ -126,7 +126,11 @@ app.get('/health', async (_req, res) => {
 
 /** Directory. Free, so agents can discover each other before deciding to pay. */
 app.get('/v1/agents', async (_req, res) => {
-  const rows = await db.select().from(schema.agents).orderBy(desc(schema.agents.score))
+  const all = await db.select().from(schema.agents).orderBy(desc(schema.agents.score))
+  // A revoked name no longer resolves on-chain, so it must not appear in the
+  // directory either. Its records still exist on its resolver; nothing points
+  // at them.
+  const rows = all.filter((a) => !a.revoked && a.ensName)
   res.json({
     agents: rows.map((a) => ({
       name: a.ensName, erc8004Id: a.erc8004Id, uaid: a.uaid,
@@ -140,6 +144,15 @@ app.get('/v1/agents', async (_req, res) => {
 app.get('/v1/agents/:name', async (req, res) => {
   const [a] = await byName(req.params.name)
   if (!a) return res.status(404).json({ error: 'unknown_agent' })
+  // 410 rather than 404: the name existed and was deliberately revoked by its
+  // owner. The distinction matters to a caller deciding whether to retry.
+  if (a.revoked) {
+    return res.status(410).json({
+      error: 'revoked',
+      name: a.ensName,
+      detail: 'The owner unregistered this name. It no longer resolves on-chain.',
+    })
+  }
   res.json({
     name: a.ensName,
     identity: { erc8004Id: a.erc8004Id, uaid: a.uaid, node: a.node, resolver: a.resolver },

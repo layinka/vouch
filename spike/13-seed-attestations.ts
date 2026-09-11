@@ -94,6 +94,17 @@ const HISTORY: Record<string, { jobs: [number, string, number][]; note: string }
       [Outcome.Ok, '0.5', 0],
     ],
   },
+  analyst: {
+    note: 'the demo headliner: strong and clean, so it can visibly FALL on camera',
+    jobs: [
+      [Outcome.Ok, '1.4', 0], [Outcome.Ok, '2.2', 1], [Outcome.Ok, '0.9', 2],
+      [Outcome.Ok, '1.8', 3], [Outcome.Ok, '1.1', 4], [Outcome.Ok, '2.6', 0],
+      [Outcome.Ok, '0.7', 1], [Outcome.Ok, '1.5', 2], [Outcome.Ok, '1.9', 3],
+      [Outcome.Ok, '1.2', 4], [Outcome.Ok, '0.8', 0], [Outcome.Ok, '2.1', 1],
+      [Outcome.Ok, '1.6', 2], [Outcome.Disputed, '0.4', 3], [Outcome.Ok, '1.3', 4],
+      [Outcome.Ok, '0.9', 0], [Outcome.Ok, '1.7', 2], [Outcome.Ok, '1.1', 3],
+    ],
+  },
   summarizer: {
     note: 'new and clean, but thin history — should score cautious, not trusted',
     jobs: [

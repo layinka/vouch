@@ -20,6 +20,8 @@ export const agents = pgTable(
     node: text('node'),
     resolver: text('resolver'),
     owner: text('owner'),
+    /** name unregistered by its owner; it no longer resolves, so it is not listed */
+    revoked: text('revoked'),
 
     // ---- evidence, mirrored from the subgraph ----
     totalJobs: integer('total_jobs').notNull().default(0),

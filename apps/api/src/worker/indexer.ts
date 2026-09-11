@@ -37,7 +37,7 @@ const THRESHOLD = Number(process.env.SCORE_PUBLISH_THRESHOLD ?? 5)
 
 const dep = JSON.parse(readFileSync('deployments/sepolia.json', 'utf8')) as {
   vouchScoreAnchor?: Hex
-  agents: Record<string, { name: string; resolver: Hex; node: Hex; erc8004Id?: string }>
+  agents: Record<string, { name: string; resolver: Hex; node: Hex; erc8004Id?: string; revoked?: boolean }>
 }
 const anchorAbi = JSON.parse(readFileSync('packages/contracts/abis/VouchScoreAnchor.json', 'utf8'))
 const resolverAbi = JSON.parse(readFileSync('packages/contracts/abis/PermissionedResolverImpl.json', 'utf8'))
@@ -189,6 +189,7 @@ async function tick() {
       erc8004Id: a.id,
       ensName: a.ensName, uaid: a.uaid, node: a.node, owner: a.owner,
       resolver: depEntry?.resolver ?? null,
+      revoked: depEntry?.revoked ? 'true' : null,
       totalJobs: a.totalJobs, okJobs: a.okJobs,
       disputedJobs: a.disputedJobs, failedJobs: a.failedJobs,
       uniqueCounterparties: a.uniqueCounterparties,
@@ -200,6 +201,7 @@ async function tick() {
         ensName: sql`excluded.ens_name`, uaid: sql`excluded.uaid`,
         node: sql`excluded.node`, owner: sql`excluded.owner`,
         resolver: sql`excluded.resolver`,
+        revoked: sql`excluded.revoked`,
         totalJobs: sql`excluded.total_jobs`, okJobs: sql`excluded.ok_jobs`,
         disputedJobs: sql`excluded.disputed_jobs`, failedJobs: sql`excluded.failed_jobs`,
         uniqueCounterparties: sql`excluded.unique_counterparties`,

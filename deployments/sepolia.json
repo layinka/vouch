@@ -68,7 +68,27 @@
       "tokenId": "85239317413181961196936679871391474003701183755732836294424191899307138351104",
       "node": "0x08e88ac9135fb97142c1217b4eb9780403e9ff59ad5fdab238331b49f7cdce07",
       "revoked": true,
-      "revokedTx": "0x695c32094f9be4fdea5ef96f05ee8f5680174482ee5b66d646337c5404e56480"
+      "revokedTx": "0x695c32094f9be4fdea5ef96f05ee8f5680174482ee5b66d646337c5404e56480",
+      "skills": [
+        1
+      ],
+      "erc8004Id": "206",
+      "uaid": "uaid:aid:PSwounKHXq5W9d6yR37nVtt6RQZAZRxqLLXLA5tXwfTp3vzLg5dSxu3jsiWV8ZHag;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0x08e88ac9135fb97142c1217b4eb9780403e9ff59ad5fdab238331b49f7cdce07"
+    },
+    "analyst": {
+      "label": "analyst",
+      "name": "analyst.vouch.eth",
+      "resolver": "0x84C557500Ac3198032A6A23C9f5f62972F421c41",
+      "tokenId": "20495654113588178538099273508747150185298442307476878441215606566066178752512",
+      "node": "0x53b1efcac3c513977317b0debfaef194191df97c1b062adb855d76943001ba02",
+      "skills": [
+        1,
+        4,
+        6,
+        7
+      ],
+      "erc8004Id": "207",
+      "uaid": "uaid:aid:2hwJ8SHXFJteDBMcMAs6KMvRNhDhsrCdCdhGm5jRYQ4Ce6FkhZZ6utiZmX2aWepzgX;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0x53b1efcac3c513977317b0debfaef194191df97c1b062adb855d76943001ba02"
     }
   },
   "vouchAttestations": "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5",
