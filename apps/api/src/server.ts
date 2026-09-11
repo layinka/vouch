@@ -23,7 +23,6 @@ import { ExactHederaScheme } from '@x402/hedera/exact/server'
 import type { Network } from '@x402/core/types'
 import { db, schema } from './db/client.ts'
 import { audit, readAudit, hashscanTopic } from './hedera/hcs.ts'
-import { wrapFetchWithPayment, x402Client, decodePaymentResponseHeader } from '@x402/fetch'
 import { ExactHederaScheme as ExactHederaClientScheme } from '@x402/hedera/exact/client'
 import { createClientHederaSigner } from '@x402/hedera'
 import { PrivateKey } from '@hiero-ledger/sdk'
@@ -236,38 +235,103 @@ app.get('/v1/agents/:name/history', async (req, res) => {
  */
 const buyerId = process.env.HEDERA_BUYER_ACCOUNT_ID ?? process.env.HEDERA_ACCOUNT_ID!
 const buyerKey = process.env.HEDERA_BUYER_PRIVATE_KEY ?? process.env.HEDERA_PRIVATE_KEY!
-const buyer = new x402Client()
-  .register(NETWORK, new ExactHederaClientScheme(
-    createClientHederaSigner(buyerId, PrivateKey.fromStringECDSA(buyerKey), { network: NETWORK }),
-  ))
-  .setSpendControls({
-    maxAmountPerPayment: '$0.50',
-    allowedAssets: [
-      { network: NETWORK, asset: '0.0.429274', maxAmountPerPayment: '50000' },
-      { network: NETWORK, asset: '0.0.0', maxAmountPerPayment: '5000000' },
-    ],
-  })
-const payingFetch = wrapFetchWithPayment(fetch, buyer)
+/**
+ * The buyer agent's signer and scheme. Held directly rather than behind a
+ * paying fetch wrapper, because the browser proxy settles inline against the
+ * facilitator instead of issuing an HTTP request to itself.
+ */
+const demoSigner = buyerId && buyerKey
+  ? createClientHederaSigner(buyerId, PrivateKey.fromStringECDSA(buyerKey), { network: NETWORK })
+  : null
+const demoScheme = demoSigner ? new ExactHederaClientScheme(demoSigner) : null!
 
+/**
+ * The in-browser "buy a reputation lookup" button.
+ *
+ * A browser has no Hedera wallet, so the server pays on its behalf with the buyer
+ * agent's key. The first implementation had the server issue an HTTP request to
+ * its own /score endpoint so the 402 exchange was a genuine round trip. That
+ * works against a listening process and 502s in a serverless function, where a
+ * self-invocation is a second cold start racing the first.
+ *
+ * So the exchange runs inline instead: same payment requirements, same signed
+ * TransferTransaction, same facilitator verify + settle, same Hedera
+ * transaction. The only thing dropped is the HTTP hop to ourselves, which was
+ * never the part that made the payment real.
+ */
 app.post('/v1/demo/buy/:name', async (req, res) => {
-  // A serverless function is not listening on a port, so 127.0.0.1 has nothing
-  // to answer. Go back out through the public hostname instead: the round trip
-  // has to be a real HTTP 402 exchange for the payment to be genuine.
-  const base = process.env.VERCEL
-    ? `https://${req.get('host')}`
-    : `http://127.0.0.1:${PORT}`
-  const self = `${base}/v1/agents/${encodeURIComponent(req.params.name)}/score`
+  const name = req.params.name
   try {
-    const r = await payingFetch(self)
-    if (!r.ok) return res.status(r.status).json({ error: 'payment_failed', status: r.status })
-    const body = await r.json() as Record<string, unknown>
-    const h = r.headers.get('payment-response')
-    const st = h ? decodePaymentResponseHeader(h) : null
+    const [a] = await byName(name)
+    if (!a) return res.status(404).json({ error: 'unknown_agent' })
+    if (a.revoked) return res.status(410).json({ error: 'revoked' })
+    if (!demoSigner) return res.status(503).json({ error: 'no_buyer_configured' })
+
+    // The facilitator owns the fee payer account, so ask rather than hard-code.
+    const supported = await facilitator.getSupported()
+    const kind = supported.kinds.find(
+      (k) => k.network === NETWORK && k.scheme === 'exact',
+    )
+    const feePayer = (kind?.extra as { feePayer?: string } | undefined)?.feePayer
+    if (!feePayer) return res.status(503).json({ error: 'facilitator_unavailable' })
+
+    const requirements = {
+      scheme: 'exact',
+      network: NETWORK,
+      asset: ASSET,
+      amount: PRICE_SCORE,
+      payTo: PAY_TO,
+      maxTimeoutSeconds: 180,
+      extra: { feePayer },
+    }
+
+    const built = await demoScheme.createPaymentPayload(2, requirements as never)
+    const paymentPayload = {
+      x402Version: 2,
+      accepted: requirements,
+      payload: built.payload,
+      resource: { url: `https://${req.get('host')}/v1/agents/${encodeURIComponent(name)}/score` },
+    }
+
+    const verified = await facilitator.verify(paymentPayload as never, requirements as never)
+    if (!verified.isValid) {
+      return res.status(402).json({ error: 'payment_invalid', reason: verified.invalidReason })
+    }
+
+    const settled = await facilitator.settle(paymentPayload as never, requirements as never)
+    if (!settled.success) {
+      return res.status(402).json({ error: 'settlement_failed', reason: settled.errorReason })
+    }
+
+    audit({
+      t: 'lookup', agent: name, score: a.score ?? 0,
+      payer: settled.payer ?? 'unknown', amount: PRICE_SCORE, asset: ASSET,
+      tx: settled.transaction,
+    })
+    void db.insert(schema.lookups).values({
+      id: `${Date.now()}-${name}`,
+      agentId: a.erc8004Id, agentName: name,
+      payerAccount: settled.payer ?? 'unknown',
+      asset: ASSET, amount: PRICE_SCORE,
+      hederaTxId: settled.transaction, scoreServed: a.score,
+    }).catch((e: Error) => console.error('[lookup log]', e.message))
+
+    const scan = settled.transaction?.replace('@', '-').replace(/\.(\d{9})$/, '-$1')
     res.json({
-      ...body,
-      settlement: st?.transaction
-        ? { payer: st.payer, tx: st.transaction,
-            hashscan: `https://hashscan.io/testnet/transaction/${st.transaction.replace('@', '-').replace(/\.(\d{9})$/, '-$1')}` }
+      name: a.ensName,
+      score: a.score,
+      verdict: a.verdict,
+      components: a.components,
+      evidence: {
+        totalJobs: a.totalJobs, okJobs: a.okJobs,
+        disputedJobs: a.disputedJobs, failedJobs: a.failedJobs,
+        uniqueCounterparties: a.uniqueCounterparties,
+        disputeRateBps: a.disputeRateBps,
+      },
+      published: { anchorTx: a.anchorTx, ensTx: a.ensTx },
+      settlement: settled.transaction
+        ? { payer: settled.payer, tx: settled.transaction,
+            hashscan: `https://hashscan.io/testnet/transaction/${scan}` }
         : null,
     })
   } catch (err) {
