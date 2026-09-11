@@ -37,6 +37,9 @@ const PRICE_SCORE = process.env.X402_PRICE_SCORE ?? (ASSET === '0.0.0' ? '100000
 const PRICE_HISTORY = process.env.X402_PRICE_HISTORY ?? (ASSET === '0.0.0' ? '500000' : '5000')
 
 const app = express()
+// Vercel terminates TLS at the edge, so without this Express reports http and
+// the x402 payment challenge advertises an http:// resource URL.
+app.set('trust proxy', true)
 app.use(express.json())
 app.use((_req, res, next) => {
   res.setHeader('access-control-allow-origin', '*')
@@ -247,7 +250,13 @@ const buyer = new x402Client()
 const payingFetch = wrapFetchWithPayment(fetch, buyer)
 
 app.post('/v1/demo/buy/:name', async (req, res) => {
-  const self = `http://127.0.0.1:${PORT}/v1/agents/${encodeURIComponent(req.params.name)}/score`
+  // A serverless function is not listening on a port, so 127.0.0.1 has nothing
+  // to answer. Go back out through the public hostname instead: the round trip
+  // has to be a real HTTP 402 exchange for the payment to be genuine.
+  const base = process.env.VERCEL
+    ? `https://${req.get('host')}`
+    : `http://127.0.0.1:${PORT}`
+  const self = `${base}/v1/agents/${encodeURIComponent(req.params.name)}/score`
   try {
     const r = await payingFetch(self)
     if (!r.ok) return res.status(r.status).json({ error: 'payment_failed', status: r.status })
