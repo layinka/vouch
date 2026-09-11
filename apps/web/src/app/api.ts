@@ -20,6 +20,19 @@ export type AgentIdentity = {
 
 export type PermissionRow = { key: string; writer: 'agent' | 'scorer'; canAgentWrite: boolean }
 
+export type AttemptResult = {
+  as: 'agent' | 'scorer'
+  record: string
+  value: string
+  address: string
+  reverted: boolean
+  error: string | null
+  errorArgs: string[] | null
+  txHash: string
+  etherscan: string
+  message: string
+}
+
 export type Permissions = {
   name: string
   resolver: string
@@ -82,6 +95,18 @@ export class VouchApi {
   readonly audit = httpResource<{ topic: string | null; entries: AuditEntry[] }>(
     () => `${API_BASE}/v1/audit`,
   )
+
+  /**
+   * Attempt a record write with a specific key and report what the chain says.
+   * The agent key is not authorised for agent:score, so this broadcasts a real
+   * transaction that reverts -- demonstrating the permission split rather than
+   * asserting it.
+   */
+  attemptWrite(name: string, as: 'agent' | 'scorer' = 'agent') {
+    return this.http.post<AttemptResult>(
+      `${API_BASE}/v1/demo/attempt-write/${name}`, { as },
+    )
+  }
 
   /**
    * Scores are behind x402, so a browser cannot fetch them directly — it has no

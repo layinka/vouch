@@ -56,7 +56,7 @@ import { PermissionMatrix } from './permission-matrix'
       <div class="cols">
         <div>
           <section class="panel">
-            <vouch-permission-matrix [rows]="perms.value()?.records ?? []" />
+            <vouch-permission-matrix [rows]="perms.value()?.records ?? []" [agentName]="name()" />
           </section>
 
           <section class="panel">

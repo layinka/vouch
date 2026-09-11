@@ -26,6 +26,13 @@ import { audit, readAudit, hashscanTopic } from './hedera/hcs.ts'
 import { ExactHederaScheme as ExactHederaClientScheme } from '@x402/hedera/exact/client'
 import { createClientHederaSigner } from '@x402/hedera'
 import { PrivateKey } from '@hiero-ledger/sdk'
+import { readFileSync } from 'node:fs'
+import {
+  createPublicClient, createWalletClient, http as viemHttp,
+  encodeFunctionData, type Hex,
+} from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { sepolia } from 'viem/chains'
 
 const PORT = Number(process.env.PORT ?? 3000)
 const NETWORK = (process.env.X402_NETWORK ?? 'hedera:testnet') as Network
@@ -244,6 +251,94 @@ const demoSigner = buyerId && buyerKey
   ? createClientHederaSigner(buyerId, PrivateKey.fromStringECDSA(buyerKey), { network: NETWORK })
   : null
 const demoScheme = demoSigner ? new ExactHederaClientScheme(demoSigner) : null!
+
+// ---------------------------------------------------------------- Sepolia
+const SEPOLIA_RPC = process.env.SEPOLIA_RPC_URL ?? 'https://ethereum-sepolia-rpc.publicnode.com'
+const sepoliaClient = createPublicClient({ chain: sepolia, transport: viemHttp(SEPOLIA_RPC) })
+const resolverAbi = JSON.parse(
+  readFileSync('packages/contracts/abis/PermissionedResolverImpl.json', 'utf8'),
+)
+
+/**
+ * Attempt to write a record as a chosen key, and report exactly what the chain
+ * says back.
+ *
+ * The agent key is DELIBERATELY not authorised for agent:score. This endpoint
+ * exists so that fact can be demonstrated rather than asserted: it broadcasts a
+ * real transaction, which is mined and reverts, leaving an Etherscan link
+ * anyone can check. Simulating would be faster and free, but "it would have
+ * reverted" is a weaker claim than "here is the transaction that did".
+ */
+app.post('/v1/demo/attempt-write/:name', async (req, res) => {
+  const name = req.params.name
+  const asKey = (req.body?.as ?? 'agent') as 'agent' | 'scorer'
+  const record = (req.body?.record ?? 'agent:score') as string
+  const value = String(req.body?.value ?? '999')
+
+  const rawKey = asKey === 'scorer'
+    ? process.env.SCORER_PRIVATE_KEY
+    : process.env.AGENT_PRIVATE_KEY
+  if (!rawKey) return res.status(503).json({ error: 'key_not_configured', as: asKey })
+
+  try {
+    const [a] = await byName(name)
+    if (!a?.resolver || !a.node) return res.status(404).json({ error: 'unknown_agent' })
+
+    const account = privateKeyToAccount(rawKey as Hex)
+    const data = encodeFunctionData({
+      abi: resolverAbi, functionName: 'setText',
+      args: [a.node as Hex, record, value],
+    })
+
+    // Simulate first, purely to decode the custom error NAME. A raw eth_call
+    // gives back opaque revert data; simulateContract decodes it against the
+    // ABI, which is how we get EACUnauthorizedAccountRoles rather than
+    // "reverted". The broadcast below is what actually proves it.
+    let revertName: string | null = null
+    let revertArgs: unknown[] | null = null
+    try {
+      await sepoliaClient.simulateContract({
+        account, address: a.resolver as Hex, abi: resolverAbi,
+        functionName: 'setText', args: [a.node as Hex, record, value],
+      })
+    } catch (err) {
+      const walk = (err as { walk?: (fn: (e: unknown) => boolean) => unknown }).walk
+      const reverted = typeof walk === 'function'
+        ? walk.call(err, (e: unknown) => (e as { name?: string })?.name === 'ContractFunctionRevertedError')
+        : null
+      const d = (reverted as { data?: { errorName?: string; args?: unknown[] } } | null)?.data
+      revertName = d?.errorName ?? null
+      revertArgs = d?.args ?? null
+      if (!revertName) {
+        revertName = /(EAC[A-Za-z]+)/.exec((err as Error).message)?.[1] ?? 'reverted'
+      }
+    }
+
+    // Broadcast regardless, so there is a real transaction to point at.
+    // Skipping simulation is the point: we WANT the revert on-chain.
+    const wallet = createWalletClient({ account, chain: sepolia, transport: viemHttp(SEPOLIA_RPC) })
+    const hash = await wallet.sendTransaction({ to: a.resolver as Hex, data, gas: 120_000n })
+    const receipt = await sepoliaClient.waitForTransactionReceipt({ hash })
+
+    res.json({
+      as: asKey,
+      record,
+      value,
+      address: account.address,
+      reverted: receipt.status === 'reverted',
+      error: revertName,
+      errorArgs: revertArgs?.map(String) ?? null,
+      txHash: hash,
+      etherscan: `https://sepolia.etherscan.io/tx/${hash}`,
+      resolver: a.resolver,
+      message: receipt.status === 'reverted'
+        ? `The ${asKey} key is not authorised to write ${record}. The transaction reverted on-chain.`
+        : `The ${asKey} key wrote ${record} successfully.`,
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'attempt_failed', message: (err as Error).message })
+  }
+})
 
 /**
  * The in-browser "buy a reputation lookup" button.

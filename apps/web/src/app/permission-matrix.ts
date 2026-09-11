@@ -1,5 +1,6 @@
-import { Component, input, ChangeDetectionStrategy } from '@angular/core'
-import type { PermissionRow } from './api'
+import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core'
+import { inject } from '@angular/core'
+import { VouchApi, type PermissionRow, type AttemptResult } from './api'
 
 /**
  * The single most important component in the project.
@@ -40,6 +41,38 @@ import type { PermissionRow } from './api'
     }
     .note strong { color: var(--fg); }
     .note code { color: var(--bad); font-size: 12px; }
+
+    .prove { margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    button {
+      font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+      padding: 10px 16px; border-radius: 9px;
+      background: transparent; color: var(--bad);
+      border: 1px solid var(--bad);
+    }
+    button:hover:not(:disabled) { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+    button:disabled { opacity: .55; cursor: progress; }
+    .hint { font-size: 12px; color: var(--dim); }
+
+    .revert {
+      margin-top: 14px; border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--bad);
+      background: color-mix(in srgb, var(--bad) 10%, var(--panel2));
+    }
+    .revert .head {
+      padding: 12px 14px; font-weight: 700; font-size: 14px; color: var(--bad);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .revert .err {
+      font-family: var(--mono); font-size: 15px; color: var(--bad);
+      padding: 0 14px 12px; word-break: break-all;
+    }
+    .revert .meta {
+      padding: 12px 14px; font-size: 12px; color: var(--dim);
+      border-top: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+      line-height: 1.7;
+    }
+    .revert .meta code { color: var(--fg); font-size: 11px; }
+    .revert a { color: var(--bad); font-weight: 600; }
   `,
   template: `
     <table>
@@ -74,8 +107,64 @@ import type { PermissionRow } from './api'
       When the agent's key calls <strong>setText(agent:score)</strong> the transaction
       reverts with <code>EACUnauthorizedAccountRoles</code>.
     </div>
+
+    <div class="prove">
+      <button (click)="attempt()" [disabled]="busy()">
+        {{ busy() ? 'broadcasting to Sepolia…' : 'Attempt write as the agent key' }}
+      </button>
+      <span class="hint">
+        Sends a real transaction from the agent's own key. It will be mined, and it will fail.
+      </span>
+    </div>
+
+    @if (result(); as r) {
+      <div class="revert">
+        <div class="head">
+          <span>✗</span>
+          <span>{{ r.reverted ? 'Reverted on-chain' : 'Unexpectedly succeeded' }}</span>
+        </div>
+        <div class="err">{{ r.error }}</div>
+        <div class="meta">
+          The agent signed with <code>{{ r.address }}</code> and tried to set
+          <code>{{ r.record }}</code> to <code>{{ r.value }}</code>.
+          The resolver refused it.<br>
+          <a [href]="r.etherscan" target="_blank" rel="noopener">view the failed transaction on Etherscan ↗</a>
+        </div>
+      </div>
+    }
+    @if (failed()) { <div class="revert"><div class="meta">{{ failed() }}</div></div> }
   `,
 })
 export class PermissionMatrix {
   readonly rows = input.required<PermissionRow[]>()
+  readonly agentName = input.required<string>()
+  /** emitted once a real reverted transaction is on-chain */
+  readonly proved = output<AttemptResult>()
+
+  readonly busy = signal(false)
+  readonly result = signal<AttemptResult | null>(null)
+  readonly failed = signal<string | null>(null)
+
+  private readonly api = inject(VouchApi)
+
+  attempt() {
+    this.busy.set(true)
+    this.failed.set(null)
+    this.result.set(null)
+    this.api.attemptWrite(this.agentName(), 'agent').subscribe({
+      next: (r) => {
+        this.result.set(r)
+        this.proved.emit(r)
+        this.busy.set(false)
+      },
+      error: (e) => {
+        this.failed.set(
+          e?.error?.error === 'key_not_configured'
+            ? 'The agent key is not configured on this deployment, so the live attempt is unavailable here. Run it locally to see the revert.'
+            : 'Could not broadcast the attempt. Check the API is running.',
+        )
+        this.busy.set(false)
+      },
+    })
+  }
 }
