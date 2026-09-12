@@ -26,7 +26,6 @@ import { audit, readAudit, hashscanTopic } from './hedera/hcs.ts'
 import { ExactHederaScheme as ExactHederaClientScheme } from '@x402/hedera/exact/client'
 import { createClientHederaSigner } from '@x402/hedera'
 import { PrivateKey } from '@hiero-ledger/sdk'
-import { readFileSync } from 'node:fs'
 import {
   createPublicClient, createWalletClient, http as viemHttp,
   encodeFunctionData, type Hex,
@@ -255,9 +254,37 @@ const demoScheme = demoSigner ? new ExactHederaClientScheme(demoSigner) : null!
 // ---------------------------------------------------------------- Sepolia
 const SEPOLIA_RPC = process.env.SEPOLIA_RPC_URL ?? 'https://ethereum-sepolia-rpc.publicnode.com'
 const sepoliaClient = createPublicClient({ chain: sepolia, transport: viemHttp(SEPOLIA_RPC) })
-const resolverAbi = JSON.parse(
-  readFileSync('packages/contracts/abis/PermissionedResolverImpl.json', 'utf8'),
-)
+/**
+ * Inlined rather than read from packages/contracts/abis at runtime.
+ *
+ * A serverless bundle only ships what the bundler can trace, and a readFileSync
+ * of a JSON path is invisible to it -- this endpoint crashed in production with
+ * FUNCTION_INVOCATION_FAILED until the file dependency was removed. Only two
+ * entries are needed: setText to build the calldata, and the custom error so
+ * viem can decode the revert by name instead of returning opaque bytes.
+ */
+const resolverAbi = [
+  {
+    type: 'function',
+    name: 'setText',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'node', type: 'bytes32' },
+      { name: 'key', type: 'string' },
+      { name: 'value', type: 'string' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'error',
+    name: 'EACUnauthorizedAccountRoles',
+    inputs: [
+      { name: 'resource', type: 'uint256' },
+      { name: 'roleBitmap', type: 'uint256' },
+      { name: 'account', type: 'address' },
+    ],
+  },
+] as const
 
 /**
  * Attempt to write a record as a chosen key, and report exactly what the chain
