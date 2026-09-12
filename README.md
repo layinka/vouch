@@ -1,91 +1,175 @@
 # Vouch
 
-**The passport and credit bureau for AI agents.** ETHOnline 2026.
+**The passport and credit bureau for AI agents.**
 
-An agent gets a **name** (ENSv2 subname), **split permissions** (it can write what it
-claims; it cannot write its own score), and a **reputation** derived from on-chain
-evidence. Anyone can pay a fraction of a cent over x402 on Hedera to ask
-*"should I trust this agent?"*
+An AI agent can tell you anything about itself. Vouch makes it structurally
+incapable of lying about what it has *done*.
 
-> Claims are free. Evidence costs money.
+> **Claims are free. Evidence costs a tenth of a cent.**
 
-Full plan: [`../vouch-plan.md`](../vouch-plan.md)
+| | |
+|---|---|
+| **Live demo** | https://vouch-web-three.vercel.app |
+| **Subgraph** | https://api.studio.thegraph.com/query/1758675/vouch/v0.0.1 |
+| **HCS audit trail** | [topic `0.0.10419860`](https://hashscan.io/testnet/topic/0.0.10419860) |
+| Networks | Ethereum Sepolia · Hedera testnet |
 
-## Day-0 spike
+---
 
-Four gates. Each must pass before building on top of it.
+## The idea in one table
 
-| Gate | Command | Proves |
-|---|---|---|
-| 1 | `pnpm spike:env` | Hedera testnet reachable, key is ECDSA, balances readable |
-| 2 | `pnpm spike:assoc` | Account associated with USDC (the #1 x402-on-Hedera footgun) |
-| 3 | `pnpm spike:server` | A **live x402-gated service** returning a valid 402 challenge |
-| 4 | `pnpm spike:client` | A buyer agent completes a **real paid request**, settled on Hedera |
+Every agent gets an ENSv2 subname under `vouch.eth` with its own Permissioned
+Resolver. Write access is split **per text record**:
 
-### Setup
+| Record | Agent key | Scorer key |
+|---|:---:|:---:|
+| `agent:endpoint` | ✅ | ✗ |
+| `agent:capabilities` | ✅ | ✗ |
+| `agent:price` | ✅ | ✗ |
+| **`agent:score`** | **✗** | **✅** |
+| `agent:disputes` | ✗ | ✅ |
+| `agent:volume` | ✗ | ✅ |
 
-```bash
-# 1. Create a TESTNET account at https://portal.hedera.com  — choose ECDSA, not ED25519
-# 2. Fill in credentials
-cp .env.example .env    # then edit HEDERA_ACCOUNT_ID / HEDERA_PRIVATE_KEY / X402_PAY_TO
+The agent controls what it *claims*. It cannot touch what it has *done*. That is
+not enforced by our backend — it is ENSv2 Enhanced Access Control, and an
+unauthorised write **reverts on-chain** with `EACUnauthorizedAccountRoles`.
 
-pnpm install
-pnpm spike:env
-pnpm spike:assoc
+The live demo has a button that proves it: it signs a real transaction with the
+agent's own key, broadcasts it to Sepolia, and shows you the failure.
 
-# terminal 1
-pnpm spike:server
-# terminal 2
-pnpm spike:client
-```
+---
 
-Gate 4 prints a HashScan link to the settled transaction. That link is the
-Hedera track's qualification evidence — keep it.
+## How it qualifies, per track
 
-### If you cannot get testnet USDC
+### ENS — Best Use of ENSv2
 
-Set `X402_ASSET=0.0.0` in `.env` to settle in **HBAR** instead. HBAR needs no token
-association and the x402 Hedera scheme supports it natively. Amounts become
-tinybars (1e8 per HBAR), so `X402_PRICE_SCORE=100000` is 0.001 HBAR.
+| Requirement | Where |
+|---|---|
+| Built on ENSv2 Sepolia | [`spike/09-deploy-parent.ts`](spike/09-deploy-parent.ts) |
+| Own subname registry via VerifiableFactory | UserRegistry proxy [`0x72C8b9f1…12c5`](https://sepolia.etherscan.io/address/0x72C8b9f1a462b199d3e73D7Ea74174405Cb112c5) |
+| Permissioned Resolver per agent | one per agent — see table below |
+| **Enhanced Access Control, per text key** | `authorizeTextRoles()` in [`spike/10-agent-identity.ts`](spike/10-agent-identity.ts) |
+| Non-transferable, expiring subnames | `ROLE_CAN_TRANSFER_ADMIN` deliberately withheld from the role bitmap |
+| Revocable | `unregister()` in [`apps/agents/src/revoke.ts`](apps/agents/src/revoke.ts) — owner and resolver both go to zero |
+| AI agents as namespaces | every agent is a subname with its own resolver and role split |
+| Functional, not hard-coded | the revert is a live broadcast; scores are indexed, never seeded |
 
-## Day-0 result: ALL FOUR GATES PASSED (2026-09-04)
+ENSv2 has no soulbound flag — **non-transferability is the absence of
+`ROLE_CAN_TRANSFER_ADMIN`**, which is why it is granted nowhere in this repo.
 
-A buyer agent completed a real paid request, settled on Hedera testnet:
+### The Graph — Composable / Standardized + AI Tooling
 
-**[hashscan.io/testnet/transaction/0.0.7162784-1788542544-761207409](https://hashscan.io/testnet/transaction/0.0.7162784-1788542544-761207409)**
+| Requirement | Where |
+|---|---|
+| Live data from Subgraph Studio, no mocks | [`packages/subgraph/`](packages/subgraph/), queried by the indexer only |
+| Standardized schema | entities follow **ERC-8004** registry semantics — [`schema.graphql`](packages/subgraph/schema.graphql) |
+| Composed products | Subgraph + an MCP server over it |
+| Reusable infrastructure, not one app | [`apps/mcp/`](apps/mcp/) — four tools, usable from any MCP host |
+| x402 pay-per-query | `vouch_lookup` and `vouch_history` settle in USDC per call |
+| Meaningful work on the data | scoring in [`apps/api/src/scoring/compute.ts`](apps/api/src/scoring/compute.ts) |
 
-```
-CRYPTOTRANSFER  result SUCCESS
-  0.0.10366467  -100000 tinybars   buyer agent pays 0.001 HBAR
-  0.0.10364717  +100000 tinybars   Vouch service receives
-  0.0.7162784   -258790 tinybars   Blocky402 facilitator pays the gas
-  0.0.802       +258790 tinybars   node fee
-```
+Entity shapes deliberately follow ERC-8004 rather than a schema of our own, so a
+query written against Vouch reads **any** ERC-8004 deployment on any chain.
 
-Note the transaction id begins with `0.0.7162784` — the **facilitator's** account.
-That is the partially-signed model working exactly as specified: the buyer signs the
-transfer, the facilitator adds the fee-payer signature and submits. The buyer never
+### Hedera — AI & Agentic Payments
+
+| Requirement | Where |
+|---|---|
+| Live x402-gated service on testnet | `GET /v1/agents/:name/score` — [`apps/api/src/server.ts`](apps/api/src/server.ts) |
+| Settled through **Blocky402** | `https://api.testnet.blocky402.com` |
+| Agent consuming it, real paid request | [`apps/agents/src/marketplace.ts`](apps/agents/src/marketplace.ts) |
+| Per-call metering, not flat fees | $0.001 per score, $0.005 per history |
+| **ERC-8004 + HCS-14 identity** | UAID derivation in [`spike/11-erc8004-uaid.ts`](spike/11-erc8004-uaid.ts) |
+| **Verifiable audit trail on HCS** | topic [`0.0.10419860`](https://hashscan.io/testnet/topic/0.0.10419860) |
+| Agent discovery directory | `GET /v1/agents` — free, and deliberately withholds scores |
+
+Hedera's x402 flow is a **partially-signed `TransferTransaction`**: the client
+signs, the facilitator countersigns as fee payer and submits. The buyer never
 pays gas and never holds an API key.
 
-| Account | Role |
-|---|---|
-| `0.0.10364717` | Vouch service (`payTo`), USDC-associated |
-| `0.0.10366467` | buyer agent, 50 HBAR, unlimited auto-association |
+---
 
-## Verified facts (checked 2026-09-04)
+## Architecture
 
-| Thing | Value |
+The Graph does not index Hedera. That single fact determines the split:
+
+```
+ETHEREUM SEPOLIA — identity + evidence        HEDERA TESTNET — money + audit
+  ENSv2 registry + resolvers                    x402 settlement (Blocky402)
+  ERC-8004 registries                           HCS audit topic
+  VouchAttestations / VouchScoreAnchor          USDC 0.0.429274
+            |                                             |
+            +--> Graph subgraph --> Postgres <-- Mirror Node REST
+                                       |
+                            Vouch API (x402-gated)
+                               |            |
+                        Angular 22 UI    MCP server
+```
+
+Identity and its evidence live where the indexing ecosystem is. Settlement lives
+where finality is three seconds and fees are sub-cent.
+
+**The loop:** attestation on Sepolia → subgraph → score recomputed → scorer
+writes it to the agent's ENS record → a buyer agent reads it and decides.
+Change the evidence on-chain and every number above changes with it.
+
+---
+
+## Deployed
+
+**Sepolia**
+
+| Contract | Address |
 |---|---|
-| Blocky402 testnet facilitator | `https://api.testnet.blocky402.com` — healthy |
-| Supported network | `hedera:testnet`, scheme `exact`, x402Version **2** |
-| Facilitator fee payer | `0.0.7162784` (auto-injected into the 402; never hard-code it) |
-| USDC on Hedera testnet | `0.0.429274`, 6 decimals, symbol `USDC` |
-| HBAR as an x402 asset | `0.0.0` (tinybars) |
-| Settlement receipt header | `payment-response` (x402 v2 dropped the `X-` prefix) |
-| Testnet USDC source | [faucet.circle.com](https://faucet.circle.com) supports **Hedera Testnet** directly — 20 USDC / 2h. No bridging. |
-| End-to-end paid request latency | ~3-4.7 s (Hedera consensus + facilitator round trip) |
+| UserRegistry (ours, via VerifiableFactory) | [`0x72C8b9f1…12c5`](https://sepolia.etherscan.io/address/0x72C8b9f1a462b199d3e73D7Ea74174405Cb112c5) |
+| VouchAttestations | [`0xc2af33b4…0cc5`](https://sepolia.etherscan.io/address/0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5) |
+| VouchScoreAnchor | [`0x74274467…d050`](https://sepolia.etherscan.io/address/0x742744678e8aa910b926d239c221d6d44a31d050) |
+| ERC-8004 IdentityRegistry | `0x7177a686…dd09A` (reference deployment, not ours) |
+
+**Agents** — each with its own Permissioned Resolver:
+
+| Name | ERC-8004 | Resolver |
+|---|---|---|
+| `advisor.vouch.eth` | 208 | [`0xcbC95743…9aF4`](https://sepolia.etherscan.io/address/0xcbC957433EE1C33ea95cA9EEd0838C62cA2F9aF4) |
+| `analyst.vouch.eth` | 207 | [`0x84C55750…1c41`](https://sepolia.etherscan.io/address/0x84C557500Ac3198032A6A23C9f5f62972F421c41) |
+| `researcher.vouch.eth` | 202 | [`0x3D1aFd78…c4F6`](https://sepolia.etherscan.io/address/0x3D1aFd78e75e5007267EddAb2680328dADa6c4F6) |
+| `pricefeed.vouch.eth` | 203 | [`0xF64391A3…d6eb`](https://sepolia.etherscan.io/address/0xF64391A362Fa81cfC518E55Fb3FA53338081d6eb) |
+| `trader.vouch.eth` | 204 | [`0x4c5A0481…a0F8`](https://sepolia.etherscan.io/address/0x4c5A0481675bd95f627eb68E33018F24c92Aa0F8) |
+| `summarizer.vouch.eth` | 205 | [`0x886F2539…1644`](https://sepolia.etherscan.io/address/0x886F25392b9d3AbFF03d1343658316Edf1821644) |
+| `rogue.vouch.eth` | 206 | **revoked** — no longer resolves |
+
+**Hedera testnet** — service `0.0.10364717` · buyer agent `0.0.10366467` ·
+audit topic `0.0.10419860` · USDC `0.0.429274`
+
+---
+
+## Run it
+
+```bash
+pnpm install
+cp .env.example .env          # fill in — see DEPLOY.md
+pnpm db:migrate
+
+pnpm api                      # :3000  x402-gated API
+pnpm web                      # :4200  Angular 22 UI
+pnpm indexer                  # subgraph -> score -> on-chain
+pnpm mcp                      # MCP server (stdio)
+```
+
+Verify the stack end to end without touching the UI:
+
+```bash
+pnpm spike:env                # Hedera reachable, key is ECDSA
+pnpm demo:marketplace         # buyer agent pays, refuses, hires
+```
+
+Deployment, environment variables and the cron that keeps the demo alive:
+[`DEPLOY.md`](DEPLOY.md). MCP tools and client config: [`apps/mcp/README.md`](apps/mcp/README.md).
+
+---
 
 ## Stack
 
-Node 24 (native TypeScript, no build step) · Express 5 · `@hiero-ledger/sdk` ·
-`@x402/{core,express,fetch,hedera}` · Drizzle + Postgres · Angular 22 · Hardhat 3
+Node 24 with native TypeScript (no build step) · Express 5 · Drizzle + Postgres
+· Angular 22 (zoneless, signals) · Hardhat 3 · viem · `@hiero-ledger/sdk` ·
+`@x402/{core,express,fetch,hedera}` · The Graph
