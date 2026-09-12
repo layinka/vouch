@@ -1,5 +1,5 @@
-import { Component, inject, input, signal, ChangeDetectionStrategy } from '@angular/core'
-import { VouchApi, type ScoreDetail } from './api'
+import { Component, inject, input, signal, ChangeDetectionStrategy, OnDestroy, effect } from '@angular/core'
+import { VouchApi, API_BASE, type ScoreDetail } from './api'
 import { PermissionMatrix } from './permission-matrix'
 
 /**
@@ -15,6 +15,22 @@ import { PermissionMatrix } from './permission-matrix'
   imports: [PermissionMatrix],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
+    .moved {
+      display: flex; align-items: center; gap: 10px;
+      margin: 0 0 12px; padding: 10px 14px; border-radius: 10px;
+      background: color-mix(in srgb, var(--bad) 14%, var(--panel2));
+      border: 1px solid var(--bad); color: var(--bad);
+      font-size: 13px; font-weight: 600;
+      animation: flash 900ms ease-out;
+    }
+    .moved .arrow { font-size: 18px; line-height: 1; }
+    .moved b { font-family: var(--mono); font-size: 14px; }
+    @keyframes flash {
+      0%   { transform: translateY(-6px); opacity: 0; }
+      35%  { background: color-mix(in srgb, var(--bad) 40%, var(--panel2)); }
+      100% { transform: none; opacity: 1; }
+    }
+
     h1 { font-family: var(--mono); font-size: 26px; margin: 0 0 4px; word-break: break-all; }
     .sub { color: var(--dim); margin: 0 0 26px; font-size: 14px; }
     .cols { display: grid; gap: 20px; grid-template-columns: 1.1fr 1fr; align-items: start; }
@@ -83,6 +99,12 @@ import { PermissionMatrix } from './permission-matrix'
             @if (error()) { <div class="err">{{ error() }}</div> }
           } @else {
             <h2>Trust score</h2>
+            @if (moved(); as m) {
+              <div class="moved">
+                <span class="arrow">↓</span>
+                <span>re-scored live — <b>{{ m.from }}</b> → <b>{{ m.to }}</b> after new evidence</span>
+              </div>
+            }
             <div class="score" [class]="score()!.verdict">
               {{ score()!.score }}<span class="of"> / 1000</span>
             </div>
@@ -124,7 +146,7 @@ import { PermissionMatrix } from './permission-matrix'
     </div>
   `,
 })
-export class PassportPage {
+export class PassportPage implements OnDestroy {
   /** bound from the route via withComponentInputBinding */
   readonly name = input.required<string>()
 
@@ -133,9 +155,39 @@ export class PassportPage {
   readonly perms = this.api.permissions(() => this.name())
 
   readonly score = signal<ScoreDetail | null>(null)
+  /** set briefly when a score changes under us, so the UI can call it out */
+  readonly moved = signal<{ from: number; to: number } | null>(null)
+  private es?: EventSource
   readonly receipt = signal<{ payer: string; hashscan: string } | null>(null)
   readonly busy = signal(false)
   readonly error = signal<string | null>(null)
+
+  constructor() {
+    /**
+     * Scores are recomputed by a separate worker, so the number on this page can
+     * go stale while someone is looking at it. Subscribe to the server's event
+     * stream and update in place — a trust score that silently rots is worse
+     * than no trust score.
+     */
+    effect((onCleanup) => {
+      const agent = this.name()
+      const es = new EventSource(`${API_BASE}/v1/events`)
+      this.es = es
+      es.addEventListener('score', (e) => {
+        try {
+          const d = JSON.parse((e as MessageEvent).data) as
+            { name: string; from: number; to: number; verdict: string }
+          if (d.name !== agent) return
+          this.moved.set({ from: d.from, to: d.to })
+          const cur = this.score()
+          if (cur) this.score.set({ ...cur, score: d.to, verdict: d.verdict as ScoreDetail['verdict'] })
+        } catch { /* ignore malformed frames */ }
+      })
+      onCleanup(() => es.close())
+    })
+  }
+
+  ngOnDestroy() { this.es?.close() }
 
   components() {
     const c = this.score()?.components ?? {}

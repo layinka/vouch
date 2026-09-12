@@ -89,6 +89,21 @@
       ],
       "erc8004Id": "207",
       "uaid": "uaid:aid:2hwJ8SHXFJteDBMcMAs6KMvRNhDhsrCdCdhGm5jRYQ4Ce6FkhZZ6utiZmX2aWepzgX;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0x53b1efcac3c513977317b0debfaef194191df97c1b062adb855d76943001ba02"
+    },
+    "advisor": {
+      "label": "advisor",
+      "name": "advisor.vouch.eth",
+      "resolver": "0xcbC957433EE1C33ea95cA9EEd0838C62cA2F9aF4",
+      "tokenId": "85502233546851654233369415214215869460107919063174622289137026880853747171328",
+      "node": "0xadcce5850192a63af8ea2eefa032224ded91134be3d447e47ca677d2cb1fed6b",
+      "skills": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "erc8004Id": "208",
+      "uaid": "uaid:aid:5XmybwkdFx4ecJRMw6mUmSpZSX7aei3ypaMogP4CddKFUhqmk5ckBsoUwWPStC8oiP;uid=0;registry=vouch;proto=x402;nativeId=eip155:11155111:0xadcce5850192a63af8ea2eefa032224ded91134be3d447e47ca677d2cb1fed6b"
     }
   },
   "vouchAttestations": "0xc2af33b46d51d2e65d5d11e7039f4c47e8ae0cc5",

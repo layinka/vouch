@@ -105,6 +105,17 @@ const HISTORY: Record<string, { jobs: [number, string, number][]; note: string }
       [Outcome.Ok, '0.9', 0], [Outcome.Ok, '1.7', 2], [Outcome.Ok, '1.1', 3],
     ],
   },
+  advisor: {
+    note: 'replacement headliner: same strong shape, so the fall can be filmed again',
+    jobs: [
+      [Outcome.Ok, '1.5', 0], [Outcome.Ok, '2.3', 1], [Outcome.Ok, '1.0', 2],
+      [Outcome.Ok, '1.9', 3], [Outcome.Ok, '1.2', 4], [Outcome.Ok, '2.4', 0],
+      [Outcome.Ok, '0.8', 1], [Outcome.Ok, '1.6', 2], [Outcome.Ok, '2.0', 3],
+      [Outcome.Ok, '1.3', 4], [Outcome.Ok, '0.9', 0], [Outcome.Ok, '2.2', 1],
+      [Outcome.Ok, '1.7', 2], [Outcome.Disputed, '0.5', 3], [Outcome.Ok, '1.4', 4],
+      [Outcome.Ok, '1.0', 0], [Outcome.Ok, '1.8', 2], [Outcome.Ok, '1.2', 3],
+    ],
+  },
   summarizer: {
     note: 'new and clean, but thin history — should score cautious, not trusted',
     jobs: [
